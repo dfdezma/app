@@ -1,0 +1,72 @@
+// backend/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Sensation {
+  MUCHO_SUFRIMIENTO
+  SUFRIMIENTO_NORMAL
+  ENTRENAMIENTO_LIGERO
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  profile   Profile?
+  sessions  WorkoutSession[]
+}
+
+model Profile {
+  id           Int     @id @default(autoincrement())
+  userId       Int     @unique
+  age          Int
+  heightCm     Int
+  weightStart  Float
+  weightTarget Float
+  weightNow    Float
+  favoriteExercise String? // opcional, para progreso
+  user         User    @relation(fields: [userId], references: [id])
+}
+
+model Exercise {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  sets      SetEntry[]
+  @@unique([name])
+}
+
+model WorkoutSession {
+  id            Int        @id @default(autoincrement())
+  userId        Int
+  date          DateTime
+  durationMin   Int
+  sensation     Sensation
+  createdAt     DateTime   @default(now())
+  user          User       @relation(fields: [userId], references: [id])
+  sets          SetEntry[]
+}
+
+model SetEntry {
+  id           Int     @id @default(autoincrement())
+  sessionId    Int
+  exerciseId   Int
+  seriesIndex  Int     // 1,2,3... dentro del entrenamiento
+  supersetId   Int?    // para agrupar superseries
+  weightKg     Float
+  reps         Int
+  targetWeightKg Float? // objetivo recomendado (para guardar plan vs. realidad)
+  targetReps     Int?
+  session      WorkoutSession @relation(fields: [sessionId], references: [id])
+  exercise     Exercise       @relation(fields: [exerciseId], references: [id])
+  @@index([sessionId])
+  @@index([exerciseId])
+}
